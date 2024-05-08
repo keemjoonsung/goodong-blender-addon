@@ -5,6 +5,7 @@ from bpy.types import Context, Event
 import requests
 from datetime import datetime
 from tempfile import TemporaryDirectory
+from .utils import close_panel
 
 id = ""
 pwd = ""
@@ -12,13 +13,18 @@ title = ""
 description = ""
 token  = ""
 evnt = None
+
 class ExportOperator(bpy.types.Operator):
-    bl_idname = "object.simple_operator"
+    bl_idname = "object.export_operator"
     bl_label = "goodong"
 
     def execute(self, context):
         bpy.ops.screen.login('INVOKE_DEFAULT')
         return {'FINISHED'}
+    
+def update_event(self, event):
+    global evnt
+    evnt = event
     
 def update_login_info(self, context):
     global id
@@ -36,18 +42,6 @@ def update_repo_info(self, context):
     print("title:" , title)
     print("description:" , description)
 
-def update_event(self, event):
-    global evnt
-    evnt = event
-
-def close_panel(event):
-    x, y = event.mouse_x, event.mouse_y
-    bpy.context.window.cursor_warp(10, 10)
-
-    def move_back():
-        bpy.context.window.cursor_warp(x, y)
-        
-    bpy.app.timers.register(move_back, first_interval=0.1)
 
 class LoginOperator(bpy.types.Operator):
     bl_idname = "screen.login"
