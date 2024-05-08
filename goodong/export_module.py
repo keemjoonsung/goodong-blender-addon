@@ -31,16 +31,12 @@ def update_login_info(self, context):
     id = self.login_username
     global pwd
     pwd = self.login_password
-    print("Username: ", id)
-    print("Password: ", pwd)
 
 def update_repo_info(self, context):
     global title
     global description
     title = self.title
     description = self.description
-    print("title:" , title)
-    print("description:" , description)
 
 
 class LoginOperator(bpy.types.Operator):
@@ -51,8 +47,6 @@ class LoginOperator(bpy.types.Operator):
     login_password: bpy.props.StringProperty(name="Password", subtype='PASSWORD', update=update_login_info)
 
     def execute(self, context):
-        print("Email:", self.login_username)
-        print("Password:", self.login_password)
         global pwd
         pwd = ""
         return {'RUNNING_MODAL'}
