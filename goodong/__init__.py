@@ -42,7 +42,7 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(export_module.ExportOperator)
-    bpy.utils.unregister_clasS(import_module.ImportOperator)
+    bpy.utils.unregister_class(import_module.ImportOperator)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 

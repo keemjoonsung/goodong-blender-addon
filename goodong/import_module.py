@@ -1,5 +1,10 @@
+import os
 import bpy
+from io import BytesIO
 from .utils import close_panel
+import requests
+from tempfile import TemporaryDirectory
+
 url = ""
 evnt = None
 
@@ -43,8 +48,24 @@ class URLInputOperator(bpy.types.Operator):
 class NetworkOperator(bpy.types.Operator):
     bl_idname = "screen.network"
     bl_label = "import button"
+
     def execute(self, context):
+        global url
+        getUrl = "http://localhost:8000/repository/download/" + url
+        response = requests.get(getUrl)
+        if response.status_code != 200 :
+            self.report({'ERROR'}, "import Fail.")
+            return {'FINISHED'}
+        
+        with TemporaryDirectory() as temp_dir:
+            file_path = os.path.join(temp_dir, "model.glb")
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            bpy.ops.import_scene.gltf(filepath=file_path)
+        
         self.report({'INFO'}, "import success.")
+        
+        url = ""
         close_panel(evnt)
         return {'FINISHED'}
     
