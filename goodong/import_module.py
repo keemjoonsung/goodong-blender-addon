@@ -51,10 +51,11 @@ class NetworkOperator(bpy.types.Operator):
 
     def execute(self, context):
         global url
+        
         getUrl = "http://localhost:8000/repository/download/" + url
         response = requests.get(getUrl)
         if response.status_code != 200 :
-            self.report({'ERROR'}, "import Fail.")
+            self.report({'ERROR'}, "import failed. Please check your url.")
             return {'FINISHED'}
         
         with TemporaryDirectory() as temp_dir:

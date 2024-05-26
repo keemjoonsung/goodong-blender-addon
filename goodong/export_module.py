@@ -126,25 +126,48 @@ class CreateButtonOperator(bpy.types.Operator):
         print(upload_date)
         with TemporaryDirectory() as temp_dir :
             print(temp_dir)
-            bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")      
+            bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
+            bpy.context.scene.render.image_settings.file_format = 'PNG'
+            bpy.context.scene.render.filepath = temp_dir + "/model.png"
+            bpy.ops.render.render(write_still=True) 
+
             with open(temp_dir +"/model.glb", 'rb') as glb_file:
                 glb_data = glb_file.read()
+            with open(temp_dir +"/model.png", 'rb') as glb_file2:
+                glb_data2 = glb_file2.read()
         
         files = {'file': ('model.glb', glb_data)}
-
-        payload = {"title": title, "content": description ,"userId" : id , "uploadDate": upload_date}
-        url = "http://localhost:8000/repository/savepost"
-        response = requests.post(url=url, data=payload, files= files, headers={"Authorization": token})
+        file2 = {'png_file': ('model.png',glb_data2), 'file': ('model.glb', glb_data)}
         
-        if response._content.decode() == 'success':
+        if title == "" and description == "":
+            payload = {"userId" : id , "uploadDate": upload_date}
+            url = "http://localhost:8000/ai/test"
 
-            self.report({'INFO'}, "create repository suceess.")
-            close_panel(evnt)
+            response = requests.post(url=url, data=payload, files= file2, headers={"Authorization": token})
             
+            if response._content.decode() == 'success':
+
+                self.report({'INFO'}, "create repository suceess.")
+                close_panel(evnt)
+                
+            else :
+                self.report({'ERROR'}, "failed to create repository")
+            
+            return {'FINISHED'}
         else :
-            self.report({'ERROR'}, "title already exists in your repository")
-        
-        return {'FINISHED'}
+            payload = {"title": title, "content": description ,"userId" : id , "uploadDate": upload_date}
+            url = "http://localhost:8000/repository/savepost"
+            response = requests.post(url=url, data=payload, files= files, headers={"Authorization": token})
+            
+            if response._content.decode() == 'success':
+
+                self.report({'INFO'}, "create repository suceess.")
+                close_panel(evnt)
+                
+            else :
+                self.report({'ERROR'}, "failed to create repository")
+            
+            return {'FINISHED'}
     
     def invoke(self, context, event):
         update_event(self, event=event)
