@@ -54,6 +54,10 @@ def update_repo_info(self, context):
         tag.append(self.tag_3)
     visibility = str(self.visibility)
 
+def update_commit_msg(self, context):
+    global commit_msg
+    commit_msg = self.commit_msg
+
 class LoginOperator(bpy.types.Operator):
     bl_idname = "screen.login"
     bl_label = "login"
@@ -144,6 +148,15 @@ class CreateRepoOperator(bpy.types.Operator):
         return {'FINISHED'}
     
     def invoke(self, context, event):
+        global title, description,commit_msg,tag_1,tag_2,tag_3,tag
+        title = ""
+        description=""
+        commit_msg=""
+        tag_1 =""
+        tag_2 =""
+        tag_3 =""
+        tag =[]
+    
         wm = context.window_manager
         return wm.invoke_popup(self)
 
@@ -188,10 +201,14 @@ class CreateButtonOperator(bpy.types.Operator):
             
         if response.status_code == 200:
             self.report({'INFO'}, "create repository suceess.")
+            title=""
+            description=""
             tag = []
             close_panel(evnt)
         else :
             self.report({'ERROR'}, "failed to create repository")
+            title=""
+            description=""
             tag =[]
         return {'FINISHED'}
     
@@ -238,20 +255,15 @@ class ShowTitlesOperator(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Select Your Repository:")
-        # Display the drop-down menu with dynamic items
-    # Display the drop-down menu with dynamic items
+
         layout.prop(self, "selected_title", text="")
         
-        layout.separator()  # Adds a line separator for better UI layout
-
-        # Split the layout into two columns
+        layout.separator()  
         split = layout.split(factor=0.5)
 
-        # Add the "Create" button in the first half
         col = split.column()
-        col.operator("screen.create_repo", text="Create", icon='PLUS')
+        col.operator("screen.create_repo", text="New Repository", icon='PLUS')
 
-        # Add the "Next" button in the second half
         col = split.column()
         col.operator("screen.next_operator", text="Next", icon='FORWARD')
 
@@ -270,42 +282,23 @@ class NextOperator(bpy.types.Operator):
     bl_idname = "screen.next_operator"
     bl_label = "Commit Changes"
 
-    commit_message: bpy.props.StringProperty(name="Commit Msg")
+    commit_msg: bpy.props.StringProperty(name="Commit Msg",update = update_commit_msg)
 
     def execute(self, context):
         print(f"Commit Message: {self.commit_message}")
         return {'FINISHED'}
 
     def draw(self, context):
-        self.layout.prop(self, "commit_message")
-        self.layout.operator("screen.login_button", text="Commit")  
-
+        self.layout.prop(self, "commit_msg")
+        self.layout.operator("screen.commit_button", text="Commit and Push")  
 
 
     def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-class CommitRepoOperator(bpy.types.Operator):
-    bl_idname = "screen.create_repo"
-    bl_label = "Create Repository"
-    
-    commit_msg: bpy.props.StringProperty(name="commit msg" , update=update_repo_info)
-    
-    def execute(self, context):
-        return {'FINISHED'}
-    
-    def invoke(self, context, event):
+        commit_msg = ""
         wm = context.window_manager
         return wm.invoke_popup(self)
 
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="Enter Commit Message:")
-        layout.prop(self, "commit_msg")
-        layout.operator("screen.commit_button", text="Commit") 
         
-
 class AiButtonOperator(bpy.types.Operator):
     bl_idname = "screen.ai_button"
     bl_label = "Commit Button"
@@ -334,7 +327,6 @@ class AiButtonOperator(bpy.types.Operator):
         if response.status_code == 200:
             print(response.json())
             self.report({'INFO'}, "ai create success.")
-    
             close_panel(evnt)
                 
         else :
@@ -342,6 +334,42 @@ class AiButtonOperator(bpy.types.Operator):
             
         return {'FINISHED'}
     
+    
+    def invoke(self, context, event):
+        update_event(self, event=event)
+        return self.execute(context)
+    
+class CommitButtonOperator(bpy.types.Operator):
+    bl_idname = "screen.commit_button"
+    bl_label = "commit_button"
+
+    def execute(self, context):
+        global selected_title_global, commit_msg,evnt
+
+        with TemporaryDirectory() as temp_dir :
+            bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
+            with open(temp_dir +"/model.glb", 'rb') as glb_file:
+                glb_data = glb_file.read()        
+
+        file = {'file': ('model.glb',glb_data)}
+        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/"+ selected_title_global# 추후 배포시 url 변경해야함.
+        headers = {"Authorization": token}
+        print("url : " , url)
+        payload = {"commitMessage" :commit_msg}
+        response = requests.patch(url, data=payload, files=file,headers=headers)
+        print(response)
+        commit_msg = ""
+        if response.status_code == 200:
+            print(response.json())
+            self.report({'INFO'}, "Commit and Push success.")
+            close_panel(evnt)
+                
+        else :
+            self.report({'ERROR'}, "Failed to Commit")
+            close_panel(evnt)
+
+        return {'FINISHED'}
+
     
     def invoke(self, context, event):
         update_event(self, event=event)

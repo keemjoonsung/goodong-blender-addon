@@ -41,6 +41,8 @@ def register():
     bpy.utils.register_class(export_module.TitleSelectedOperator)
     bpy.utils.register_class(export_module.NextOperator)
     bpy.utils.register_class(export_module.AiButtonOperator)
+    bpy.utils.register_class(export_module.CommitButtonOperator)
+
 
 
     bpy.types.TOPBAR_MT_file.append(menu_func_login)
@@ -61,7 +63,9 @@ def unregister():
     bpy.utils.unregister_class(import_module.NetworkOperator)
     bpy.utils.unregister_class(export_module.NextOperator)
     bpy.utils.unregister_class(export_module.AiButtonOperator)    
+    bpy.utils.unregister_class(export_module.CommitButtonOperator)    
     bpy.types.TOPBAR_MT_file.remove(menu_func_login)
+    
 
 
 def menu_func_login(self, context):
