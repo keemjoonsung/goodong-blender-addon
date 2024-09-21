@@ -98,10 +98,7 @@ class LoginButtonOperator(bpy.types.Operator):
             response = requests.post(url, json=payload)
             token = response.json()['data']
             token = "Bearer " + token
-            print(token)
             if(response.status_code == 200):
-                print("login success")
-                # bpy.ops.screen.create_repo('INVOKE_DEFAULT')
                 posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts"  # Change URL as needed.
                 headers = {"Authorization": token}
                 posts_response = requests.get(posts_url, headers=headers)
@@ -111,8 +108,8 @@ class LoginButtonOperator(bpy.types.Operator):
                     bpy.ops.screen.show_titles_operator('INVOKE_DEFAULT')
                     
             
-                return {'FINISHED'}
-
+                    return {'FINISHED'}
+                    
             else :
                 self.report({'ERROR'}, "Login Failed.")
                 return {'FINISHED'}
@@ -182,9 +179,7 @@ class CreateButtonOperator(bpy.types.Operator):
         
         global id, title, description, evnt,token,tag,visibility,tag
         upload_date = datetime.utcnow().isoformat() + 'Z'
-        print(upload_date)
         with TemporaryDirectory() as temp_dir :
-            print(temp_dir)
             bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
             bpy.context.scene.render.image_settings.file_format = 'PNG'
             bpy.context.scene.render.filepath = temp_dir + "/model.png"
@@ -228,20 +223,15 @@ class ShowTitlesOperator(bpy.types.Operator):
     def get_items():
         global posts_data
         if posts_data:
-            # Create the items dynamically from posts_data
             return [(str(post['postId']), post['title'], "") for post in posts_data]
         else:
-            # Fallback item if no posts are available
             return [('', 'No Posts Available', '')]
     @staticmethod
     def update_selected_title(self):
         global selected_title_global
-        # 전역 변수에 선택된 title 저장
         selected_title_global = self.selected_title
-        print(f"Updated selected title: {selected_title_global}")
         
     def execute(self, context):
-        print(f"Selected title: {self.selected_title}")
         bpy.ops.screen.confirm_selection_operator('INVOKE_DEFAULT', selected_title=self.selected_title)
         return {'FINISHED'}
 
@@ -285,7 +275,6 @@ class NextOperator(bpy.types.Operator):
     commit_msg: bpy.props.StringProperty(name="Commit Msg",update = update_commit_msg)
 
     def execute(self, context):
-        print(f"Commit Message: {self.commit_message}")
         return {'FINISHED'}
 
     def draw(self, context):
@@ -307,7 +296,6 @@ class AiButtonOperator(bpy.types.Operator):
         
         global id, title, description, evnt,token,tag,visibility
         upload_date = datetime.utcnow().isoformat() + 'Z'
-        print(upload_date)
         with TemporaryDirectory() as temp_dir :
             bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
             bpy.context.scene.render.image_settings.file_format = 'PNG'
@@ -321,11 +309,9 @@ class AiButtonOperator(bpy.types.Operator):
 
         file2 = {'fileGlb': ('model.glb',glb_data), "file" : ('model.png',glb_data2)}
         url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/ai?autoCreate=true&status=" + visibility
-        print(url)
         response = requests.post(url=url, files= file2, headers={"Authorization": token})
             
         if response.status_code == 200:
-            print(response.json())
             self.report({'INFO'}, "ai create success.")
             close_panel(evnt)
                 
@@ -354,13 +340,10 @@ class CommitButtonOperator(bpy.types.Operator):
         file = {'file': ('model.glb',glb_data)}
         url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/"+ selected_title_global# 추후 배포시 url 변경해야함.
         headers = {"Authorization": token}
-        print("url : " , url)
         payload = {"commitMessage" :commit_msg}
         response = requests.patch(url, data=payload, files=file,headers=headers)
-        print(response)
         commit_msg = ""
         if response.status_code == 200:
-            print(response.json())
             self.report({'INFO'}, "Commit and Push success.")
             close_panel(evnt)
                 
