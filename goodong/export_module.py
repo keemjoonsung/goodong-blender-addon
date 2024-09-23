@@ -96,10 +96,11 @@ class LoginButtonOperator(bpy.types.Operator):
             url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/auth/login" # 추후 배포시 url 변경해야함.
             payload = {"email" :username , "password" : password}
             response = requests.post(url, json=payload)
-            token = response.json()['data']
-            token = "Bearer " + token
+
             if(response.status_code == 200):
-                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts"  # Change URL as needed.
+                token = response.json()['data']
+                token = "Bearer " + token
+                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/all"  # Change URL as needed.
                 headers = {"Authorization": token}
                 posts_response = requests.get(posts_url, headers=headers)
                 if posts_response.status_code == 200:

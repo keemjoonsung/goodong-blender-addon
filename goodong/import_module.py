@@ -60,7 +60,7 @@ class NetworkOperator(bpy.types.Operator):
     def execute(self, context):
         global fileName
         
-        getUrl = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?fileName=" + fileName
+        getUrl = "https://goodong-api-741693435028.asia-northeast1.run.app/api/models?modelName=" + fileName
         response = requests.get(getUrl)
         if response.status_code == 200 :
             with TemporaryDirectory() as temp_dir:
@@ -125,7 +125,7 @@ class AuthButtonOperator(bpy.types.Operator):
             response = requests.post(url, json=payload)
             if(response.status_code == 200):
                 token = "Bearer " + response.json()['data']
-                getUrl = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?fileName=" + fileName
+                getUrl = "https://goodong-api-741693435028.asia-northeast1.run.app/api/models?modelName=" + fileName
                 headers = {"Authorization": token}
                 response = requests.get(getUrl,headers=headers)
                 if response.status_code == 200 :
