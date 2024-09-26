@@ -19,6 +19,7 @@ items = []
 id_map= {}
 selected_title_global = ""
 tag=[]
+
 visibility = "PUBLIC"
 class ExportOperator(bpy.types.Operator):
     bl_idname = "object.export_operator"
@@ -31,6 +32,14 @@ class ExportOperator(bpy.types.Operator):
 def update_event(self, event):
     global evnt
     evnt = event
+
+def init_global():
+    global title, description,commit_msg,tag_1,tag_2,tag_3,tag,posts_data
+    title = ""
+    description=""
+    commit_msg=""
+    tag =[]
+    posts_data=[]
     
 def update_login_info(self, context):
     global id
@@ -46,6 +55,7 @@ def update_repo_info(self, context):
     
     title = self.title
     description = self.description
+    tag = []
     if self.tag_1 != "":
         tag.append(self.tag_1)
     if self.tag_2 != "":
@@ -53,6 +63,7 @@ def update_repo_info(self, context):
     if self.tag_3 != "":
         tag.append(self.tag_3)
     visibility = str(self.visibility)
+
 
 def update_commit_msg(self, context):
     global commit_msg
@@ -179,7 +190,6 @@ class CreateButtonOperator(bpy.types.Operator):
     def execute(self, context) :
         
         global id, title, description, evnt,token,tag,visibility,tag
-        upload_date = datetime.utcnow().isoformat() + 'Z'
         with TemporaryDirectory() as temp_dir :
             bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
             bpy.context.scene.render.image_settings.file_format = 'PNG'
@@ -296,7 +306,6 @@ class AiButtonOperator(bpy.types.Operator):
     def execute(self, context) :
         
         global id, title, description, evnt,token,tag,visibility
-        upload_date = datetime.utcnow().isoformat() + 'Z'
         with TemporaryDirectory() as temp_dir :
             bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
             bpy.context.scene.render.image_settings.file_format = 'PNG'
@@ -346,12 +355,11 @@ class CommitButtonOperator(bpy.types.Operator):
         commit_msg = ""
         if response.status_code == 200:
             self.report({'INFO'}, "Commit and Push success.")
-            close_panel(evnt)
                 
         else :
             self.report({'ERROR'}, "Failed to Commit")
-            close_panel(evnt)
-
+        init_global()
+        close_panel(evnt)
         return {'FINISHED'}
 
     
