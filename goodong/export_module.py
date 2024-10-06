@@ -111,11 +111,11 @@ class LoginButtonOperator(bpy.types.Operator):
             if(response.status_code == 200):
                 token = response.json()['data']
                 token = "Bearer " + token
-                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/all"  # Change URL as needed.
+                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?all=true"  # Change URL as needed.
                 headers = {"Authorization": token}
                 posts_response = requests.get(posts_url, headers=headers)
                 if posts_response.status_code == 200:
-                    posts_data = posts_response.json()['data']
+                    posts_data = posts_response.json()['data']['content']
                     id_map = {item['title']: item['postId'] for item in posts_data}
                     bpy.ops.screen.show_titles_operator('INVOKE_DEFAULT')
                     
@@ -198,7 +198,7 @@ class CreateButtonOperator(bpy.types.Operator):
 
             with open(temp_dir +"/model.glb", 'rb') as glb_file:
                 glb_data = glb_file.read()        
-        files = {'file': ('model.glb', glb_data)}
+        files = {'fileGlb': ('model.glb', glb_data)}
         
         
         payload = {"title": title, "content": description ,"status" : visibility, "tags" :tag }
@@ -317,9 +317,10 @@ class AiButtonOperator(bpy.types.Operator):
             with open(temp_dir +"/model.glb", 'rb') as glb_file:
                 glb_data = glb_file.read()        
 
-        file2 = {'fileGlb': ('model.glb',glb_data), "file" : ('model.png',glb_data2)}
-        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/ai?autoCreate=true&status=" + visibility
-        response = requests.post(url=url, files= file2, headers={"Authorization": token})
+        file2 = {'fileGlb': ('model.glb',glb_data), "filePng" : ('model.png',glb_data2)}
+        payload = {'status': visibility}
+        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?autoCreate=true"
+        response = requests.post(url=url, files= file2, data= payload, headers={"Authorization": token})
             
         if response.status_code == 200:
             self.report({'INFO'}, "ai create success.")
@@ -347,7 +348,7 @@ class CommitButtonOperator(bpy.types.Operator):
             with open(temp_dir +"/model.glb", 'rb') as glb_file:
                 glb_data = glb_file.read()        
 
-        file = {'file': ('model.glb',glb_data)}
+        file = {'fileGlb': ('model.glb',glb_data)}
         url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/"+ selected_title_global# 추후 배포시 url 변경해야함.
         headers = {"Authorization": token}
         payload = {"commitMessage" :commit_msg}
