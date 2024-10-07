@@ -1,4 +1,5 @@
-import io
+import json
+import io,os
 from typing import Set
 import bpy
 from bpy.types import Context, Event
@@ -21,12 +22,38 @@ selected_title_global = ""
 tag=[]
 
 visibility = "PUBLIC"
+TOKEN_FILE = "token.json"  # 토큰 저장 파일 경로
+
 class ExportOperator(bpy.types.Operator):
     bl_idname = "object.export_operator"
     bl_label = "goodong"
-
+    
     def execute(self, context):
-        bpy.ops.screen.login('INVOKE_DEFAULT')
+        # 1. 파일 확인
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, 'r') as file:
+                global token
+                token_data = json.load(file)
+                token = "Bearer " + token_data.get('token')
+                
+                # 3. 읽은 내용을 출력
+                print(f"Loaded token: {token}")
+                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?all=true"  # Change URL as needed.
+                headers = {"Authorization": token}
+                posts_response = requests.get(posts_url, headers=headers)
+                if posts_response.status_code == 200:
+                    global posts_data, id_map
+                    posts_data = posts_response.json()['data']['content']
+                    id_map = {item['title']: item['postId'] for item in posts_data}
+                    bpy.ops.screen.show_titles_operator('INVOKE_DEFAULT')
+                else :
+                    os.remove(TOKEN_FILE)
+                    token = ""
+                    bpy.ops.screen.login('INVOKE_DEFAULT')
+        else:
+            # 3. 파일이 없으면 로그인 창 호출
+            bpy.ops.screen.login('INVOKE_DEFAULT')
+        
         return {'FINISHED'}
     
 def update_event(self, event):
@@ -110,6 +137,9 @@ class LoginButtonOperator(bpy.types.Operator):
 
             if(response.status_code == 200):
                 token = response.json()['data']
+                token_data = {"token": token}
+                with open(TOKEN_FILE, 'w') as file:
+                    json.dump(token_data, file)
                 token = "Bearer " + token
                 posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?all=true"  # Change URL as needed.
                 headers = {"Authorization": token}
@@ -254,9 +284,15 @@ class ShowTitlesOperator(bpy.types.Operator):
 
     
     def draw(self, context):
+        
+        global token
+        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/auth/check-token"  # Change URL as needed.
+        headers = {"Authorization": token}
+        response = requests.get(url, headers=headers)
+        nickname = response.json()['data']['nickname']
+        print("닉네임 : ", nickname)
         layout = self.layout
-        layout.label(text="Select Your Repository:")
-
+        layout.label(text=f"Select {nickname}'s Repository:")
         layout.prop(self, "selected_title", text="")
         
         layout.separator()  
@@ -266,8 +302,21 @@ class ShowTitlesOperator(bpy.types.Operator):
         col.operator("screen.create_repo", text="New Repository", icon='PLUS')
 
         col = split.column()
-        col.operator("screen.next_operator", text="Next", icon='FORWARD')
+        col.operator("screen.next_operator", text="Commit", icon='FORWARD')
+        
+        col = split.column()
+        col.operator("screen.logout_operator", text="Logout", icon='QUIT')
 
+class LogoutOperator(bpy.types.Operator):
+    bl_idname = "screen.logout_operator"
+    bl_label = "Logout"
+    
+    def execute(self, context) :
+        global token
+        token = ""
+        os.remove(TOKEN_FILE)
+        self.report({'INFO'}, "Logout success")
+        return {'FINISHED'}
     
 class TitleSelectedOperator(bpy.types.Operator):
     bl_idname = "screen.title_selected"
