@@ -7,10 +7,12 @@ from datetime import datetime
 from tempfile import TemporaryDirectory
 from . import export_module
 from . import import_module
+from .export_module import MyProperties
+
 bl_info = {
     "name": "goodong",
-    "author": "Kim Joon Sung",
-    "description": "Sample addon for goodong",
+    "author": "Keem Joon Sung",
+    "description": "add-on for export-import remotely via goodong website",
     "blender": (2, 93, 0),
     "version": (0, 0, 1),
     "location": "File > Import-Export",
@@ -26,11 +28,12 @@ def menu_func_import(self, context):
 
 
 def register():
+    bpy.utils.register_class(MyProperties)
+    bpy.types.Scene.my_tool = bpy.props.PointerProperty(type=MyProperties)
     bpy.utils.register_class(export_module.ExportOperator)
     bpy.utils.register_class(import_module.ImportOperator)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
-
     bpy.utils.register_class(export_module.LoginOperator)
     bpy.utils.register_class(export_module.LoginButtonOperator)
     bpy.utils.register_class(export_module.CreateRepoOperator)
@@ -45,10 +48,11 @@ def register():
     bpy.utils.register_class(import_module.AuthOperator)
     bpy.utils.register_class(import_module.AuthButtonOperator)
     bpy.utils.register_class(export_module.LogoutOperator)
-
     bpy.types.TOPBAR_MT_file.append(menu_func_login)
 
 def unregister():
+    del bpy.types.Scene.my_tool  
+    bpy.utils.unregister_class(MyProperties)
     bpy.utils.unregister_class(export_module.ExportOperator)
     bpy.utils.unregister_class(import_module.ImportOperator)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)

@@ -13,6 +13,7 @@ pwd = ""
 title = ""
 description = ""
 commit_msg = ""
+nickname = ""
 token  = ""
 evnt = None
 posts_data = []
@@ -22,36 +23,44 @@ selected_title_global = ""
 tag=[]
 
 visibility = "PUBLIC"
-TOKEN_FILE = "token.json"  # 토큰 저장 파일 경로
+addon_folder = os.path.join(os.path.expanduser("~"), ".goodong_blender_addon")  # 폴더 이름에 .을 추가하여 숨김 처리
+os.makedirs(addon_folder, exist_ok=True)  # 폴더가 없으면 생성
+TOKEN_FILE = os.path.join(addon_folder, "goodong_auth.json")  # 파일 이름을 .token.json으로 설정
 
 class ExportOperator(bpy.types.Operator):
     bl_idname = "object.export_operator"
     bl_label = "goodong"
     
     def execute(self, context):
-        # 1. 파일 확인
         if os.path.exists(TOKEN_FILE):
             with open(TOKEN_FILE, 'r') as file:
                 global token
                 token_data = json.load(file)
                 token = "Bearer " + token_data.get('token')
-                
-                # 3. 읽은 내용을 출력
                 print(f"Loaded token: {token}")
-                posts_url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?all=true"  # Change URL as needed.
+                url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/auth/check-token"
                 headers = {"Authorization": token}
-                posts_response = requests.get(posts_url, headers=headers)
-                if posts_response.status_code == 200:
-                    global posts_data, id_map
-                    posts_data = posts_response.json()['data']['content']
-                    id_map = {item['title']: item['postId'] for item in posts_data}
-                    bpy.ops.screen.show_titles_operator('INVOKE_DEFAULT')
+                response = requests.get(url, headers=headers)
+                if response.status_code == 200:
+                    global posts_data, id_map, nickname
+                    nickname = response.json()['data']['nickname']
+                    url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?all=true"
+                    posts_response = requests.get(url, headers=headers)
+                    if(posts_response.status_code == 200) :
+                        posts_data = posts_response.json()['data']['content']
+                        id_map = {item['title']: item['postId'] for item in posts_data}
+                        bpy.ops.screen.show_titles_operator('INVOKE_DEFAULT')
+                    else:
+                        os.remove(TOKEN_FILE)
+                        token = ""
+                        nickname = ""
+                        self.report({'ERROR'}, "Load repository failed.")
+                        return {'FINISHED'}                
                 else :
                     os.remove(TOKEN_FILE)
                     token = ""
                     bpy.ops.screen.login('INVOKE_DEFAULT')
         else:
-            # 3. 파일이 없으면 로그인 창 호출
             bpy.ops.screen.login('INVOKE_DEFAULT')
         
         return {'FINISHED'}
@@ -79,9 +88,10 @@ def update_repo_info(self, context):
     global description
     global tag
     global visibility
-    
-    title = self.title
-    description = self.description
+    if self.title != "":
+        title = self.title
+    if self.description != "" :
+        description = self.description
     tag = []
     if self.tag_1 != "":
         tag.append(self.tag_1)
@@ -90,12 +100,25 @@ def update_repo_info(self, context):
     if self.tag_3 != "":
         tag.append(self.tag_3)
     visibility = str(self.visibility)
+    print("변경 : ")
+    print(title, description,tag,visibility)
 
-
+def update_tag(self, context):
+    global tag
+    tag = []
+    if self.tag_1 != "":
+        tag.append(self.tag_1)
+    if self.tag_2 != "":
+        tag.append(self.tag_2)
+    if self.tag_3 != "":
+        tag.append(self.tag_3)
 def update_commit_msg(self, context):
     global commit_msg
     commit_msg = self.commit_msg
 
+def update_visibility(self, context):
+    global visibility
+    visibility = self.visibility
 class LoginOperator(bpy.types.Operator):
     bl_idname = "screen.login"
     bl_label = "login"
@@ -166,49 +189,41 @@ class LoginButtonOperator(bpy.types.Operator):
 class CreateRepoOperator(bpy.types.Operator):
     bl_idname = "screen.create_repo"
     bl_label = "Create Repository"
-    
-    title: bpy.props.StringProperty(name = "title", update=update_repo_info)
-    description: bpy.props.StringProperty(name="description" , update=update_repo_info)
-    commit_msg: bpy.props.StringProperty(name="commit msg" , update=update_repo_info)
-    tag_1 : bpy.props.StringProperty(name="tag 1" , update=update_repo_info)
-    tag_2 : bpy.props.StringProperty(name="tag 2" , update=update_repo_info)
-    tag_3 : bpy.props.StringProperty(name="tag 3" , update=update_repo_info)
-    visibility: bpy.props.EnumProperty(
-        name="Visibility",
-        description="Select visibility",
-        items=[
-            ('PRIVATE', "Private", "This is a private post"),
-            ('PUBLIC', "Public", "This is a public post")
-        ],
-        default='PUBLIC',  # Default to 'Public'
-        update=update_repo_info  # Optional: trigger an update function if needed
-    )
+
     def execute(self, context):
+        # my_tool의 값들을 확인하거나 사용할 수 있습니다
+        props = context.scene.my_tool
+        print(f"Title: {props.title}, Description: {props.description}, Tags: {props.tag_1}, {props.tag_2}, {props.tag_3}")
+        # 필요에 따라 서버에 전송하거나 로직 처리
         return {'FINISHED'}
-    
+
     def invoke(self, context, event):
-        global title, description,commit_msg,tag_1,tag_2,tag_3,tag
-        title = ""
-        description=""
-        commit_msg=""
-        tag_1 =""
-        tag_2 =""
-        tag_3 =""
-        tag =[]
-    
+        # 초기화: my_tool의 값을 초기화하거나 기본값 설정
+        props = context.scene.my_tool
+        props.title = ""
+        props.description = ""
+        props.tag_1 = ""
+        props.tag_2 = ""
+        props.tag_3 = ""
+        
         wm = context.window_manager
         return wm.invoke_popup(self)
 
     def draw(self, context):
         layout = self.layout
         layout.label(text="Enter the title and description:")
-        layout.prop(self, "title")
-        layout.prop(self, "description")
+        
+        # my_tool의 속성들을 바로 참조해서 입력 UI 필드를 구성
+        props = context.scene.my_tool
+        layout.prop(props, "title")
+        layout.prop(props, "description")
+        
         row = layout.row()
-        row.prop(self, "tag_1", text="Tag 1")
-        row.prop(self, "tag_2", text="Tag 2")
-        row.prop(self, "tag_3", text="Tag 3")
-        layout.prop(self, "visibility", expand=True)
+        row.prop(props, "tag_1", text="Tag 1")
+        row.prop(props, "tag_2", text="Tag 2")
+        row.prop(props, "tag_3", text="Tag 3")
+        
+        layout.prop(props, "visibility", expand=True)
         layout.operator("screen.ai_button", text="AI Create")  
         layout.operator("screen.create_button", text="Create")  
     
@@ -237,15 +252,14 @@ class CreateButtonOperator(bpy.types.Operator):
             
         if response.status_code == 200:
             self.report({'INFO'}, "create repository suceess.")
+
             title=""
             description=""
             tag = []
             close_panel(evnt)
         else :
-            self.report({'ERROR'}, "failed to create repository")
-            title=""
-            description=""
-            tag =[]
+            self.report({'ERROR'}, "Duplicated title, please change your title.")
+
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -285,12 +299,7 @@ class ShowTitlesOperator(bpy.types.Operator):
     
     def draw(self, context):
         
-        global token
-        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/auth/check-token"  # Change URL as needed.
-        headers = {"Authorization": token}
-        response = requests.get(url, headers=headers)
-        nickname = response.json()['data']['nickname']
-        print("닉네임 : ", nickname)
+        global nickname
         layout = self.layout
         layout.label(text=f"Select {nickname}'s Repository:")
         layout.prop(self, "selected_title", text="")
@@ -354,7 +363,7 @@ class AiButtonOperator(bpy.types.Operator):
     
     def execute(self, context) :
         
-        global id, title, description, evnt,token,tag,visibility
+        global id, title, description, evnt,token,visibility
         with TemporaryDirectory() as temp_dir :
             bpy.ops.export_scene.gltf(export_format='GLB', filepath= temp_dir + "/model.glb")
             bpy.context.scene.render.image_settings.file_format = 'PNG'
@@ -366,17 +375,30 @@ class AiButtonOperator(bpy.types.Operator):
             with open(temp_dir +"/model.glb", 'rb') as glb_file:
                 glb_data = glb_file.read()        
 
-        file2 = {'fileGlb': ('model.glb',glb_data), "filePng" : ('model.png',glb_data2)}
-        payload = {'status': visibility}
-        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts?autoCreate=true"
-        response = requests.post(url=url, files= file2, data= payload, headers={"Authorization": token})
+        # file2 = {'fileGlb': ('model.glb',glb_data), "filePng" : ('model.png',glb_data2)}
+        # payload = {'status': visibility}
+        file2 = {"filePng" : ('model.png',glb_data2) }
+        url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/metadata"
+        response = requests.post(url=url, files= file2 ,headers={"Authorization": token})
             
         if response.status_code == 200:
+            data = response.json()['data']
+            title = data['title']
+            description = data['content']
+            tags = data['tags']
+            print(title,description,tag)
+            context.scene.my_tool.title = title
+            context.scene.my_tool.description = description
+            if len(tags) == 3:
+                context.scene.my_tool.tag_1 = tags[0]
+                context.scene.my_tool.tag_2 = tags[1]
+                context.scene.my_tool.tag_3 = tags[2]
+            context.scene.update_tag()
+            
             self.report({'INFO'}, "ai create success.")
-            close_panel(evnt)
-                
+            print(response.json()['data'])                
         else :
-            self.report({'ERROR'}, "failed to create (Maybe duplicated title)")
+            self.report({'ERROR'}, "failed to generate metadata of your model.")
             
         return {'FINISHED'}
     
@@ -384,7 +406,24 @@ class AiButtonOperator(bpy.types.Operator):
     def invoke(self, context, event):
         update_event(self, event=event)
         return self.execute(context)
-    
+
+class MyProperties(bpy.types.PropertyGroup):
+    title: bpy.props.StringProperty(name="title", update = update_repo_info)
+    description: bpy.props.StringProperty(name="description", update = update_repo_info)
+    tag_1: bpy.props.StringProperty(name="tag 1", update = update_repo_info)
+    tag_2: bpy.props.StringProperty(name="tag 2", update = update_repo_info)
+    tag_3: bpy.props.StringProperty(name="tag 3", update = update_repo_info)
+    visibility: bpy.props.EnumProperty(
+        name="Visibility",
+        description="Select visibility",
+        items=[
+            ('PRIVATE', "Private", "This is a private post"),
+            ('PUBLIC', "Public", "This is a public post")
+        ],
+        default='PUBLIC',  # Default to 'Public'
+        update=update_visibility  # 변경 시 함수 호출
+    )
+
 class CommitButtonOperator(bpy.types.Operator):
     bl_idname = "screen.commit_button"
     bl_label = "commit_button"
