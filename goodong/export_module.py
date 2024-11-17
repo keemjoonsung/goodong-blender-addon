@@ -439,13 +439,14 @@ class CommitButtonOperator(bpy.types.Operator):
         file = {'fileGlb': ('model.glb',glb_data)}
         url = "https://goodong-api-741693435028.asia-northeast1.run.app/api/posts/"+ selected_title_global# 추후 배포시 url 변경해야함.
         headers = {"Authorization": token}
+        
         payload = {"commitMessage" :commit_msg}
         response = requests.patch(url, data=payload, files=file,headers=headers)
         commit_msg = ""
         if response.status_code == 200:
             self.report({'INFO'}, "Commit and Push success.")
                 
-        else :
+        else: 
             self.report({'ERROR'}, "Failed to Commit")
         init_global()
         close_panel(evnt)
